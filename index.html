@@ -5325,11 +5325,12 @@ function formatValueForAxis(value) {
 
 // ========== CONFIGURACION DEL AGENTE BENITO ==========
 const BENITO_CONFIG = {
-    // IMPORTANTE: Para usar OpenAI, configura estas variables
-    // Por seguridad, en produccion usa un backend/proxy
-    OPENAI_API_KEY: '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',
-    ASSISTANT_ID: 'asst_kqu46RizsTdYT3AZ91hpVAJd',
-    useOpenAI: true,
+    // URL del backend (cambia a tu URL de produccion)
+    BACKEND_URL: 'https://ws.baldecash.com/api/benito',
+    // BACKEND_URL: 'http://127.0.0.1:8000/api/benito', // Para desarrollo local
+    // Token de autenticación (Bearer token)
+    AUTH_TOKEN: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI3IiwianRpIjoiMmMyZWE0ZDc3OTQwZWY2ZTdmMzJlOGRkMjUwNjRhYTdhNjIyNDRmMzUzMDBkOTcyMGFjY2FhMWQxZmU4OTE2MzUxOGEwMDkzMGViZTc2NGQiLCJpYXQiOjE3NDIzMzc0OTEuMjExMzUsIm5iZiI6MTc0MjMzNzQ5MS4yMTEzNTMsImV4cCI6MTc3Mzg3MzQ5MS4xOTQ0NTUsInN1YiI6IjEiLCJzY29wZXMiOlsiKiJdfQ.GmljQKk_hSEzVFlRfZMYRpt1jtBc_Fl27Vt2UEeMT5lwN4ms1w84f-dJOObRDUyzh4--DONHc7O1WZ36SjttIqmPotbSw9UWRlrA0cDrhGzmwt6nQGAAqCth1g8pkgu5tXb737wbDq8hTHtu5FU05nLrs2bYqxtbjgp500VoQB23_xEi-5FybCX0pM3i38F6VeyPoduIiY7-FRiUq6tw153uSIcCjNpZGwkffBqw6hxQ0rgGe8G_ytFbMxha_Z0zuDL5oqXtEE2U2w4mIG2_cKygysbyPOd3Qkq_LLD_lRpOWHPASrxLdVQGpLkayCBXzHb4B-Qr0Z7zQz9LqZADqojck5J8R4ZitmPpGwHbQvh6t6IbsJuXRq9mFE37VPpqxvmHyJzo_4uM5Rm0K-jKvZ4WggUddAjDn8untElx1ncMjCmFs_kOcpnoUStv3aOQGk75635_WImjTStt05BQ_EmDoRZizUqZ2zVhlrxjmgnv1SxEiPL4jDK9jaLJWUnS2MPQX4yzhd6xwhFk0LI677xpMOiag-kFU5nC3naIc9bZBKj_Ekt1UyMejPL4KqMQsBk6g40eD6ju8qVEjNEZxYCLtgD6Qr8_dheXfXiDTQQltgrG-qSzio888E_ygdq2cawS73zf5edQiau_p_wpodbCl1O6r5BzZhRuaFF0zAA',
+    useBackend: true,
     currentThreadId: null  // Almacena el thread para mantener contexto
 };
 
@@ -5381,64 +5382,33 @@ function showTypingIndicator(container) {
     return typing;
 }
 
-// Funcion para llamar a OpenAI Assistants API
-async function callOpenAIAssistant(userMessage) {
-    if (!BENITO_CONFIG.OPENAI_API_KEY || !BENITO_CONFIG.ASSISTANT_ID) {
-        throw new Error('OpenAI no configurado');
-    }
-
-    const headers = {
-        'Authorization': `Bearer ${BENITO_CONFIG.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'assistants=v2'
-    };
-
-    // Reutilizar thread existente o crear uno nuevo (para mantener contexto)
-    let threadId = BENITO_CONFIG.currentThreadId;
-    if (!threadId) {
-        const threadRes = await fetch('https://api.openai.com/v1/threads', {
-            method: 'POST', headers, body: JSON.stringify({})
-        });
-        const thread = await threadRes.json();
-        threadId = thread.id;
-        BENITO_CONFIG.currentThreadId = threadId;
-    }
-
-    // Agregar mensaje
-    await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ role: 'user', content: userMessage })
+// Funcion para llamar al backend de Benito
+async function callBenitoBackend(userMessage) {
+    const response = await fetch(`${BENITO_CONFIG.BACKEND_URL}/message`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${BENITO_CONFIG.AUTH_TOKEN}`
+        },
+        body: JSON.stringify({
+            mensaje: userMessage,
+            thread_id: BENITO_CONFIG.currentThreadId
+        })
     });
 
-    // Ejecutar assistant
-    const runRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs`, {
-        method: 'POST', headers,
-        body: JSON.stringify({ assistant_id: BENITO_CONFIG.ASSISTANT_ID })
-    });
-    const run = await runRes.json();
+    const data = await response.json();
 
-    // Esperar completado (polling)
-    let status = run.status;
-    let attempts = 0;
-    while (status !== 'completed' && status !== 'failed' && attempts < 30) {
-        await new Promise(r => setTimeout(r, 1000));
-        const checkRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/runs/${run.id}`, {
-            method: 'GET', headers
-        });
-        const checkRun = await checkRes.json();
-        status = checkRun.status;
-        attempts++;
+    if (!data.success) {
+        throw new Error(data.error || 'Error en el servidor');
     }
 
-    if (status !== 'completed') throw new Error('Timeout o error en respuesta');
+    // Guardar thread_id para mantener contexto
+    if (data.data.thread_id) {
+        BENITO_CONFIG.currentThreadId = data.data.thread_id;
+    }
 
-    // Obtener mensajes
-    const msgsRes = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {
-        method: 'GET', headers
-    });
-    const msgs = await msgsRes.json();
-    const assistantMsg = msgs.data.find(m => m.role === 'assistant');
-    return assistantMsg?.content?.[0]?.text?.value || 'No pude procesar tu consulta.';
+    return data.data.mensaje;
 }
 
 // Funcion para limpiar citaciones de OpenAI (formato 【...】)
@@ -5554,9 +5524,9 @@ async function sendChatMessage(){
     let response = '';
 
     try {
-        if (BENITO_CONFIG.useOpenAI && BENITO_CONFIG.OPENAI_API_KEY && BENITO_CONFIG.ASSISTANT_ID) {
-            // Usar OpenAI Assistants API
-            response = cleanOpenAIResponse(await callOpenAIAssistant(messageText));
+        if (BENITO_CONFIG.useBackend && BENITO_CONFIG.BACKEND_URL) {
+            // Usar backend de Laravel (seguro, sin exponer API key)
+            response = await callBenitoBackend(messageText);
         } else {
             // Usar respuestas locales inteligentes
             await new Promise(r => setTimeout(r, 600)); // Simular delay
