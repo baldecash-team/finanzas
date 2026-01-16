@@ -4665,34 +4665,39 @@ function renderComparisonChart() {
             // Solo agregar si hay al menos un valor Plan no nulo
             const hasValidPlan = dataPlan.some(v => v !== null && v !== undefined);
             if (hasValidPlan) {
+                // Plan usa el mismo tipo que Actual (línea o barra)
+                const planColor = baseColor + 'AA';  // Color con 67% opacidad para diferenciar
                 const datasetPlan = {
                     label: `${getDisplayName(mk)} - Plan (${m.unidad})`,
                     data: dataPlan,
-                    type: 'line',  // Plan siempre como línea
+                    type: chartType,  // Mismo tipo que Actual
                     yAxisID: 'y',
-                    borderColor: baseColor,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [8, 4],  // Línea punteada para Plan
+                    borderColor: chartType === 'bar' ? baseColor : baseColor,
+                    backgroundColor: chartType === 'bar' ? baseColor + '50' : 'transparent',  // Barras con 30% opacidad
+                    borderWidth: chartType === 'bar' ? 2 : 2,
+                    borderDash: chartType === 'line' ? [8, 4] : [],  // Línea punteada solo para líneas
                     tension: 0.4,
                     fill: false,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    pointRadius: chartType === 'line' ? 4 : 0,
+                    pointHoverRadius: chartType === 'line' ? 6 : 0,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: baseColor,
                     pointBorderWidth: 2,
-                    pointStyle: 'rectRot',  // Diamante para diferenciar
+                    pointStyle: 'rectRot',
+                    // Para barras: usar patrón de rayas con borde
+                    barPercentage: chartType === 'bar' ? 0.7 : undefined,
+                    categoryPercentage: chartType === 'bar' ? 0.8 : undefined,
                     datalabels: {
                         display: showChartLabels,
                         anchor: 'end',
-                        align: 'bottom',
+                        align: chartType === 'bar' ? 'top' : 'bottom',
                         formatter: (value) => value !== null ? formatValueForLabel(value, m.unidad, mk) : '',
                         font: { size: 9, weight: 'bold', style: 'italic' },
-                        color: baseColor
+                        color: chartType === 'bar' ? '#666' : baseColor
                     }
                 };
                 datasets.push(datasetPlan);
-                console.log(`   [${index}] ✅ Dataset PLAN PRIMARIO agregado.`);
+                console.log(`   [${index}] ✅ Dataset PLAN PRIMARIO agregado (tipo: ${chartType}).`);
             } else {
                 console.log(`   [${index}] ⚠️ Métrica ${mk} no tiene datos de Plan.`);
             }
@@ -4772,34 +4777,37 @@ function renderComparisonChart() {
             // Solo agregar si hay al menos un valor Plan no nulo
             const hasValidPlan = dataPlan.some(v => v !== null && v !== undefined);
             if (hasValidPlan) {
+                // Plan usa el mismo tipo que Actual (línea o barra)
                 const datasetPlan = {
                     label: `${getDisplayName(mk)} - Plan (${m.unidad})`,
                     data: dataPlan,
-                    type: 'line',  // Plan siempre como línea
+                    type: chartType,  // Mismo tipo que Actual
                     yAxisID: 'y1',
-                    borderColor: baseColor,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [8, 4],  // Línea punteada para Plan
+                    borderColor: chartType === 'bar' ? baseColor : baseColor,
+                    backgroundColor: chartType === 'bar' ? baseColor + '50' : 'transparent',  // Barras con 30% opacidad
+                    borderWidth: chartType === 'bar' ? 2 : 2,
+                    borderDash: chartType === 'line' ? [8, 4] : [],  // Línea punteada solo para líneas
                     tension: 0.4,
                     fill: false,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
+                    pointRadius: chartType === 'line' ? 4 : 0,
+                    pointHoverRadius: chartType === 'line' ? 6 : 0,
                     pointBackgroundColor: '#fff',
                     pointBorderColor: baseColor,
                     pointBorderWidth: 2,
-                    pointStyle: 'rectRot',  // Diamante para diferenciar
+                    pointStyle: 'rectRot',
+                    barPercentage: chartType === 'bar' ? 0.7 : undefined,
+                    categoryPercentage: chartType === 'bar' ? 0.8 : undefined,
                     datalabels: {
                         display: showChartLabels,
                         anchor: 'end',
-                        align: 'bottom',
+                        align: chartType === 'bar' ? 'top' : 'bottom',
                         formatter: (value) => value !== null ? formatValueForLabel(value, m.unidad, mk) : '',
                         font: { size: 9, weight: 'bold', style: 'italic' },
-                        color: baseColor
+                        color: chartType === 'bar' ? '#666' : baseColor
                     }
                 };
                 datasets.push(datasetPlan);
-                console.log(`   [${index}] ✅ Dataset PLAN SECUNDARIO agregado.`);
+                console.log(`   [${index}] ✅ Dataset PLAN SECUNDARIO agregado (tipo: ${chartType}).`);
             } else {
                 console.log(`   [${index}] ⚠️ Métrica ${mk} no tiene datos de Plan.`);
             }
